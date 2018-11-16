@@ -17,8 +17,11 @@ class CheckInfoHelper(QThread):
         self.wait()
 
     def run(self):
-        project_size_file = self.target_project + '_size.json'
-        project_md5_file = self.target_project + '_md5.json'
+        self.target_project = os.path.abspath(self.target_project)
+        target_project_split_list = self.target_project.split('\\')
+        target_project_name = target_project_split_list[-1]
+        project_size_file = target_project_name + '_size.json'
+        project_md5_file = target_project_name + '_md5.json'
 
         if os.path.exists(project_size_file):
             with open(project_size_file, 'r') as size_file:

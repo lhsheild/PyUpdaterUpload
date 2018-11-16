@@ -11,26 +11,6 @@ def get_dir_size(folder):
     return size
 
 
-class GetSizeHelper(object):
-    def __init__(self):
-        super().__init__()
-        self.size_list = []
-
-    def __del__(self):
-        self.size_list = None
-
-    def get_size(self, path):
-        file_list = os.listdir(path)
-        for filename in file_list:
-            temp_path = os.path.join(path, filename)
-            if os .path.isdir(temp_path):
-                self.get_size(temp_path)
-            elif os.path.isfile(temp_path):
-                file_size = os.path.getsize(temp_path)
-                self.size_list.append(file_size)
-        return sum(self.size_list)
-
-
 class FullCheckHelper(QThread):
     signal_get_size = pyqtSignal(str)
     signal_get_md5 = pyqtSignal(str)
@@ -38,8 +18,8 @@ class FullCheckHelper(QThread):
 
     def __init__(self, target_folder):
         super().__init__()
-        self.target_project = target_folder
-        self.project_name = self.target_project.split('/')[-1]
+        self.target_project = os.path.abspath(target_folder)
+        self.project_name = self.target_project.split('\\')[-1]
         self.size_dic = {}
         self.md5_dic = {}
 
@@ -53,16 +33,18 @@ class FullCheckHelper(QThread):
             for dir_name in dirs:
                 folder = os.path.join(root, dir_name)
                 folder = os.path.abspath(folder)
-                folder_relative_path = folder.split(self.project_name)[-1]
+                folder_index1 = folder.find(self.project_name)
+                folder_relative_path = folder[folder_index1:]
                 # print(folder_relative_path)
                 size = get_dir_size(folder)
-                self.size_dic[folder] = size
+                self.size_dic[folder_relative_path] = size
                 self.signal_get_size.emit(folder_relative_path)
 
             for file_name in files:
                 file = os.path.join(root, file_name)
                 file = os.path.abspath(file)
-                file_relative_path = file.split(self.project_name)[-1]
+                file_index1 = file.find(self.project_name)
+                file_relative_path = file[file_index1:]
                 # print(file_relative_path)
                 md5 = hashlib.md5()
                 block_size = 2 ** 20
@@ -73,8 +55,9 @@ class FullCheckHelper(QThread):
                             break
                         md5.update(data)
                 md5_value = md5.hexdigest()
-                self.md5_dic[file] = md5_value
+                self.md5_dic[file_relative_path] = md5_value
                 self.signal_get_md5.emit(file_relative_path)
+
         size_json = json.dumps(self.size_dic)
         md5_json = json.dumps(self.md5_dic)
         with open((self.project_name + '_size.json'), 'w') as size_file:
@@ -98,7 +81,6 @@ class UpdateCheckHelper(QThread):
         print(self.project_name)
         self.size_dic = size_dic
         self.md5_dic = md5_dic
-        self.get_size_helper = GetSizeHelper()
         self.changed_folder_list = []
         self.update_dic = {}
         self.new_size_dic = {}

@@ -2,7 +2,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
+from tool import CheckHelper, CompareHelper
+
 import sys
+import os
 
 
 class MainWindow(QMainWindow):
@@ -35,6 +38,12 @@ class MainWindow(QMainWindow):
 
         center_widget.setLayout(main_layout)
         center_widget.show()
+
+        '''临时变量'''
+        self.project_path = None
+        self.size_dic = None
+        self.md5_dic = None
+        self.do_compare = False
 
     def paintEvent(self, event):
         painter = QPainter()
@@ -100,3 +109,34 @@ class MainWindow(QMainWindow):
         progressbar.setFixedSize(800, 30)
         # progressbar.setVisible(False)
         return progressbar
+
+    def select_ckeck_folder(self):
+        selected_folder = QFileDialog.getExistingDirectory(self, '选择文件夹')
+        if os.path.exists(selected_folder):
+            self.project_path = os.path.abspath(selected_folder)
+            self.check_info_backend(self.project_path)
+
+    '''检测是否已有文件信息记录'''
+    def check_info_backend(self, project_path):
+        self.check_info_helper = CheckHelper.CheckInfoHelper(project_path)
+        self.check_info_helper.signal_get_info.connect(self.check_info_success)
+        self.check_info_helper.signal_get_info_fail.connect(self.check_info_fail)
+        self.check_info_helper.start()
+
+    @pyqtSlot(tuple)
+    def check_info_success(self, info_tuplr):
+        self.size_dic = info_tuplr[0]
+        self.md5_dic = info_tuplr[1]
+        self.do_compare = True
+        # TODO 检测生成更新包
+
+    @pyqtSlot()
+    def check_info_fail(self):
+        self.size_dic = None
+        self.md5_dic = None
+        self.do_compare = False
+        # TODO 检测生成文件信息
+
+    '''计算所有文件信息'''
+    def cal_info_backend(self, project_path):
+        self.cal_info_helper = CompareHelper.FullCheckHelper(project_path)
