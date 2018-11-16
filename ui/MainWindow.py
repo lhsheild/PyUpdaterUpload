@@ -6,6 +6,7 @@ from tool import CheckHelper, CompareHelper
 
 import sys
 import os
+import json
 
 
 class MainWindow(QMainWindow):
@@ -101,6 +102,7 @@ class MainWindow(QMainWindow):
         tips_label.setStyleSheet('QLabel{color:white}')
         tips_label.setText('请检测更新文件')
         tips_label.setFixedSize(800, 30)
+        tips_label.setObjectName('tips_label')
         return tips_label
 
     def progressbar_init(self):
@@ -140,3 +142,39 @@ class MainWindow(QMainWindow):
     '''计算所有文件信息'''
     def cal_info_backend(self, project_path):
         self.cal_info_helper = CompareHelper.FullCheckHelper(project_path)
+        self.cal_info_helper.signal_cal_folder_size.connect(self.cal_folder_size)
+        self.cal_info_helper.signal_cal_file_md5.connect(self.cal_file_md5)
+        self.cal_info_helper.signal_get_full_info.connect(self.get_full_info)
+        self.cal_info_helper.start()
+
+    @pyqtSlot(str)
+    def cal_folder_size(self, folder):
+        self.findChild(QLabel, 'tips_label').setText('计算文件夹大小：{}', folder)
+
+    @pyqtSlot(str)
+    def cal_file_md5(self, file):
+        self.findChild(QLabel, 'tips_label').setText('计算文件MD5值：{}', file)
+
+    @pyqtSlot()
+    def get_full_info(self):
+        self.findChild(QLabel, 'tips_label').setText('已生成项目初始信息')
+
+    '''对比文件信息'''
+    def compare_info_backend(self, project_path):
+        self.compare_info_helper = CompareHelper.UpdateCheckHelper(project_path, self.size_dic, self.md5_dic)
+
+    @pyqtSlot(str)
+    def compare_folder_size(self, folder):
+        self.findChild(QLabel, 'tips_label').setText('对比文件夹大小：{}', folder)
+
+    @pyqtSlot(str)
+    def compare_file_md5(self, file):
+        self.findChild(QLabel, 'tips_label').setText('对比文件MD5值：{}', file)
+
+    @pyqtSlot(tuple)
+    def get_new_folder_size(self, size_info):
+        project_name = size_info[0]
+        size_dic = size_info[1]
+        size_json = json.dumps(size_dic)
+        with open((project_name + '_size_json'), 'w') as sf:
+            sf.write(size_json)
