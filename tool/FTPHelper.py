@@ -1,24 +1,28 @@
 import ftplib
 
-CONST_HOST = "192.168.0.176"
+CONST_HOST = "192.168.8.171"
 CONST_USERNAME = "Administrator"
 CONST_PWD = "Gut102015"
 CONST_BUFFER_SIZE = 8192
 
 
 class MyFtp(ftplib.FTP):
-    def __init__(self):
+    def __init__(self, ftp_host, ftp_port, ftp_username, ftp_password):
         super().__init__()
         self.encoding = 'GBK'
+        self.ftp_host = ftp_host
+        self.ftp_port = ftp_port
+        self.ftp_username = ftp_username
+        self.ftp_password = ftp_password
 
-    def ftp_login(self, ftp_host=CONST_HOST, ftp_port=21, ftp_username=CONST_USERNAME, ftp_password=CONST_PWD):
+    def ftp_login(self):
         try:
-            self.connect(ftp_host, ftp_port, 2)
+            self.connect(self.ftp_host, self.ftp_port, 3)
             print(self.welcome)
         except Exception as e:
             print('连接失败：', e)
         try:
-            self.login(ftp_username, ftp_password)
+            self.login(self.ftp_username, self.ftp_password)
             print('已登录FTP服务器')
             return 1000
         except Exception as e:
@@ -41,7 +45,7 @@ class MyFtp(ftplib.FTP):
 
     def upload_file(self, remote_path, local_path):
         try:
-            bufsize = 1024
+            bufsize = 8192
             fp = open(local_path, 'rb')
             self.storbinary('STOR ' + remote_path, fp, bufsize)
             self.set_debuglevel(0)

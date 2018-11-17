@@ -68,7 +68,7 @@ class FullCheckHelper(QThread):
 
 
 class UpdateCheckHelper(QThread):
-    signal_get_update_info = pyqtSignal(dict)
+    signal_get_update_info = pyqtSignal(tuple)
     signal_compare_folder_size = pyqtSignal(str)
     signal_get_new_folder_size = pyqtSignal(tuple)
     signal_compare_file_md5 = pyqtSignal(str)
@@ -111,7 +111,6 @@ class UpdateCheckHelper(QThread):
 
         self.new_md5_dic = self.md5_dic
         for i in self.changed_folder_list:
-            # print(i)
             file_list = os.listdir(i)
             for file in file_list:
                 file = os.path.join(i, file)
@@ -136,8 +135,8 @@ class UpdateCheckHelper(QThread):
                         self.update_dic[file_relative_path] = md5_value
                         self.new_md5_dic[file_relative_path] = md5_value
         self.signal_get_new_file_md5.emit((self.project_name, self.new_md5_dic))  # 生成新的文件MD5值信息文件
-        update_info_json = json.dumps(self.update_dic)
+        update_json = json.dumps(self.update_dic)
         if len(self.update_dic) > 0:
             with open((self.project_name + '_update.json'), 'w') as update_file:
-                update_file.write(update_info_json)
-        self.signal_get_update_info.emit(self.update_dic)  # 生成更新文件信息文件
+                update_file.write(update_json)
+        self.signal_get_update_info.emit((self.project_name, self.update_dic))  # 生成更新文件信息文件
