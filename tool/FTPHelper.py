@@ -45,9 +45,9 @@ class MyFtp(ftplib.FTP):
 
     def upload_file(self, remote_path, local_path):
         try:
-            bufsize = 8192
+            buf_size = 8192
             fp = open(local_path, 'rb')
-            self.storbinary('STOR ' + remote_path, fp, bufsize)
+            self.storbinary('STOR ' + remote_path, fp, buf_size)
             self.set_debuglevel(0)
             fp.close()
             self.quit()

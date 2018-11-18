@@ -13,6 +13,9 @@ import time
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        self.setWindowIcon(QIcon(r'E:\Projects\Python_Projects\PyUpdaterUpload\resource\小鸟妮妮.png'))
+        self.setWindowTitle('三维平台更新包生成程序')
         center_widget = QWidget()
         self.setCentralWidget(center_widget)
 
