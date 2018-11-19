@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowIcon(QIcon(r'E:\Projects\Python_Projects\PyUpdaterUpload\resource\小鸟妮妮.png'))
+        self.setWindowIcon(QIcon(r'D:\Project\PythonProjects\PyUpdaterUpload\resource\小鸟妮妮.png'))
         self.setWindowTitle('三维平台更新包生成程序')
         center_widget = QWidget()
         self.setCentralWidget(center_widget)
@@ -53,11 +53,11 @@ class MainWindow(QMainWindow):
         painter.begin(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
-        painter.drawPixmap(0, 0, 1280, 720, QPixmap(r"E:\Projects\Python_Projects\PyUpdaterUpload\resource\世界地图.jpg"))
+        painter.drawPixmap(0, 0, 1280, 720, QPixmap(r"D:\Project\PythonProjects\PyUpdaterUpload\resource\世界地图.jpg"))
         painter.end()
 
     def quit_button_init(self):
-        quit_icon = QIcon(r'E:\Projects\Python_Projects\PyUpdaterUpload\resource\00007881.png')
+        quit_icon = QIcon(r'D:\Project\PythonProjects\PyUpdaterUpload\resource\00007881.png')
         quit_button = QPushButton(self)
         quit_button.setIcon(quit_icon)
         quit_button.setIconSize(QSize(256, 256))
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
 
     def check_button_init(self):
         check_button = QPushButton(self)
-        check_icon = QIcon(r'E:\Projects\Python_Projects\PyUpdaterUpload\resource\00007BF8.png')
+        check_icon = QIcon(r'D:\Project\PythonProjects\PyUpdaterUpload\resource\00007BF8.png')
         check_button.setIcon(check_icon)
         check_button.setIconSize(QSize(256, 256))
         check_button.setFixedSize(256, 256)
@@ -142,15 +142,18 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def cal_folder_size(self, folder):
-        self.findChild(QLabel, 'tips_label').setText('计算文件夹大小：{}'.format(folder))
+        # self.findChild(QLabel, 'tips_label').setText('计算文件夹大小：{}'.format(folder))
+        self.tips_label.setText('计算文件夹大小：{}'.format(folder))
 
     @pyqtSlot(str)
     def cal_file_md5(self, file):
-        self.findChild(QLabel, 'tips_label').setText('计算文件MD5值：{}'.format(file))
+        # self.findChild(QLabel, 'tips_label').setText('计算文件MD5值：{}'.format(file))
+        self.tips_label.setText('计算文件MD5值：{}'.format(file))
 
     @pyqtSlot()
     def get_full_info(self):
-        self.findChild(QLabel, 'tips_label').setText('已生成项目初始信息')
+        # self.findChild(QLabel, 'tips_label').setText('已生成项目初始信息')
+        self.tips_label.setText('已生成项目初始信息')
 
     '''对比文件信息'''
     def compare_info_backend(self, project_path):
@@ -164,11 +167,13 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(str)
     def compare_folder_size(self, folder):
-        self.findChild(QLabel, 'tips_label').setText('对比文件夹大小：{}'.format(folder))
+        # self.findChild(QLabel, 'tips_label').setText('对比文件夹大小：{}'.format(folder))
+        self.tips_label.setText('对比文件夹大小：{}'.format(folder))
 
     @pyqtSlot(str)
     def compare_file_md5(self, file):
-        self.findChild(QLabel, 'tips_label').setText('对比文件MD5值：{}'.format(file))
+        # self.findChild(QLabel, 'tips_label').setText('对比文件MD5值：{}'.format(file))
+        self.tips_label.setText('对比文件MD5值：{}'.format(file))
 
     @pyqtSlot(tuple)
     def get_new_folder_size(self, size_info):
@@ -199,24 +204,30 @@ class MainWindow(QMainWindow):
                     for i in update_dic:
                         update_file = os.path.join(project_pre_path, i)
                         update_file = os.path.abspath(update_file)
-                        zip_file.write(update_file)
-                        self.findChild(QLabel, 'tips_label').setText('压缩文件：{}'.format(update_file))
+                        # zip_file.write(update_file)
+                        zip_file.write(update_file, i)
+                        # self.findChild(QLabel, 'tips_label').setText('压缩文件：{}'.format(update_file))
+                        self.tips_label.setText('压缩文件：{}'.format(update_file))
                     zip_file.write(project_name + '_update.json')
                 except Exception as e:
                     print(e)
 
             update_zip = project_name + '_' + time_tick + '.zip'
             try:
-                my_ftp_helper = FTPHelper.MyFtp('192.168.8.171', 21, 'Administrator', 'Gut102015')
+                my_ftp_helper = FTPHelper.MyFtp('192.168.0.176', 21, 'Administrator', 'Gut102015')
                 if my_ftp_helper.ftp_login() == 1000:
                     upload_result = my_ftp_helper.upload_file(update_zip, update_zip)
                     if upload_result == 1000:
-                        self.findChild(QLabel, 'tips_label').setText('更新包上传成功：{}'.format(update_zip))
+                        # self.findChild(QLabel, 'tips_label').setText('更新包上传成功：{}'.format(update_zip))
+                        self.tips_label.setText('更新包上传成功：{}'.format(update_zip))
                     else:
-                        self.findChild(QLabel, 'tips_label').setText('更新包上传失败，请联系管理员并手动上传更新包')
+                        # self.findChild(QLabel, 'tips_label').setText('更新包上传失败，请联系管理员并手动上传更新包')
+                        self.tips_label.setText('更新包上传失败，请联系管理员并手动上传更新包')
                 else:
-                    self.findChild(QLabel, 'tips_label').setText('服务器链接失败，请联系管理员并手动上传更新包')
+                    # self.findChild(QLabel, 'tips_label').setText('服务器链接失败，请联系管理员并手动上传更新包')
+                    self.tips_label.setText('服务器链接失败，请联系管理员并手动上传更新包')
             except Exception as e:
                 print(e)
         else:
-            self.findChild(QLabel, 'tips_label').setText('没有更新内容：{}'.format(project_name))
+            # self.findChild(QLabel, 'tips_label').setText('没有更新内容：{}'.format(project_name))
+            self.tips_label.setText('没有更新内容：{}'.format(project_name))
