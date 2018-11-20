@@ -1,0 +1,10 @@
+<!DOCTYPE RCC><RCC version="1.0">
+ <qresource prefix="/resource">
+    <file alias="a.png">/resource/00007BF8.png</file>
+    <file alias="b.png">/resource/00007881.png</file>
+    <file alias="c.png">/resource/Q版.png</file>
+    <file alias="d.jpg">/resource/世界地图.jpg</file>
+    <file alias="e.png">/resource/妮妮守望.png</file>
+    <file alias="f.png">/resource/小鸟妮妮.png</file>
+  </qresource>
+</RCC>

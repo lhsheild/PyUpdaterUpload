@@ -3,18 +3,20 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
 from tool import CheckHelper, CompareHelper, FTPHelper
+from image_qrc import *
 
 import zipfile
 import os
 import json
 import time
+import sys
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowIcon(QIcon(r'D:\Project\PythonProjects\PyUpdaterUpload\resource\小鸟妮妮.png'))
+        self.setWindowIcon(QIcon(':/resource/f.png'))
         self.setWindowTitle('三维平台更新包生成程序')
         center_widget = QWidget()
         self.setCentralWidget(center_widget)
@@ -53,11 +55,11 @@ class MainWindow(QMainWindow):
         painter.begin(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
-        painter.drawPixmap(0, 0, 1280, 720, QPixmap(r"D:\Project\PythonProjects\PyUpdaterUpload\resource\世界地图.jpg"))
+        painter.drawPixmap(0, 0, 1280, 720, QPixmap(':/resource/d.jpg'))
         painter.end()
 
     def quit_button_init(self):
-        quit_icon = QIcon(r'D:\Project\PythonProjects\PyUpdaterUpload\resource\00007881.png')
+        quit_icon = QIcon(':/resource/b.png')
         quit_button = QPushButton(self)
         quit_button.setIcon(quit_icon)
         quit_button.setIconSize(QSize(256, 256))
@@ -65,12 +67,12 @@ class MainWindow(QMainWindow):
         quit_button.setStyleSheet(
             "QPushButton{color:black;background-color:transparent;border:none} QPushButton:hover{"
             "background-color:#888888;border:none}")
-        quit_button.clicked.connect(lambda: exit(0))
+        quit_button.clicked.connect(lambda: sys.exit(0))
         return quit_button
 
     def check_button_init(self):
         check_button = QPushButton(self)
-        check_icon = QIcon(r'D:\Project\PythonProjects\PyUpdaterUpload\resource\00007BF8.png')
+        check_icon = QIcon(':/resource/a.png')
         check_button.setIcon(check_icon)
         check_button.setIconSize(QSize(256, 256))
         check_button.setFixedSize(256, 256)
@@ -214,7 +216,7 @@ class MainWindow(QMainWindow):
 
             update_zip = project_name + '_' + time_tick + '.zip'
             try:
-                my_ftp_helper = FTPHelper.MyFtp('192.168.0.176', 21, 'Administrator', 'Gut102015')
+                my_ftp_helper = FTPHelper.MyFtp('172.16.1.156', 21, 'Administrator', '123456')
                 if my_ftp_helper.ftp_login() == 1000:
                     upload_result = my_ftp_helper.upload_file(update_zip, update_zip)
                     if upload_result == 1000:
