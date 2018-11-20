@@ -1,4 +1,5 @@
 import ftplib
+import sys
 
 CONST_HOST = "192.168.8.171"
 CONST_USERNAME = "Administrator"
@@ -7,7 +8,7 @@ CONST_BUFFER_SIZE = 8192
 
 
 class MyFtp(ftplib.FTP):
-    def __init__(self, ftp_host, ftp_port, ftp_username, ftp_password):
+    def __init__(self, ftp_host=CONST_HOST, ftp_port=21, ftp_username=CONST_USERNAME, ftp_password=CONST_PWD):
         super().__init__()
         self.encoding = 'GBK'
         self.ftp_host = ftp_host
@@ -57,8 +58,31 @@ class MyFtp(ftplib.FTP):
             return 1001
 
 
+class MyFtpTest(ftplib.FTP):
+    def __init__(self):
+        super(MyFtpTest, self).__init__()
+
+    def connect_ftp(self, remote_ip, remote_port, login_name, login_password):
+        my_ftp = MyFtp()
+
+        try:
+            my_ftp.connect(remote_ip, remote_port, 600)
+            print('connect success')
+        except Exception as e:
+            print(sys.stderr, "conncet failed1 - %s" % e)
+            return 0, 'connect failed'
+        else:
+            try:
+                my_ftp.login(login_name, login_password)
+                print('login success')
+            except Exception as e:
+                print(sys.stderr, "login failed1 - %s" % e)
+                return 0, 'login failed'
+            else:
+                print('return 1')
+                return 1, my_ftp
+
+
 if __name__ == '__main__':
-    ftp = MyFtp()
-    ftp.ftp_login()
-    ftp.dir()
-    ftp.upload_file('viewer_md5.json', r'D:\Project\PythonProjects\Py_Uploader\viewer_md5.json')
+    ftp = MyFtpTest()
+    my_ftp = ftp.connect()
