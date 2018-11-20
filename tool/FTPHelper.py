@@ -82,6 +82,13 @@ class MyFtpTest(ftplib.FTP):
                 print('return 1')
                 return 1, my_ftp
 
+    def download(self, remote_host, remote_port, login_name, login_password):
+        res = self.connect_ftp(remote_host, remote_port, login_name, login_password)
+
+        if res[0] ! , = 1:
+            print >> sys.stderr, res[1]
+            sys.exit()
+
 
 if __name__ == '__main__':
     ftp = MyFtpTest()
