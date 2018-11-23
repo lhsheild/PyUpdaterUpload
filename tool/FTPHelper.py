@@ -202,6 +202,8 @@ class MyFtpTest(ftplib.FTP):
 class MyQThreadFTP(QThread, MyFtpTest):
     signal_server_unable = pyqtSignal(str)
     signal_server_bigger = pyqtSignal()
+    signal_server_process = pyqtSignal(float)
+    signal_upload_finish = pyqtSignal()
 
     def __init__(self, remote_host, remote_port, login_name, login_password, remote_file, local_file, is_upload):
         super().__init__()
@@ -217,14 +219,17 @@ class MyQThreadFTP(QThread, MyFtpTest):
         self.wait()
 
     def run(self):
-        self.upload_file( )
+        if self.is_upload:
+            self.upload_file()
+        else:
+            self.download_file()
 
     def download_file(self):
         res = self.connect_ftp(self.remote_host, self.remote_port, self.login_name, self.login_password)
 
         # 链接不上服务器则退出
         if res[0] != 1:
-            print >> sys.stderr, res[1]
+            print(sys.stderr, res[1])
             self.signal_server_unable.emit(res[1])
 
         ftp = res[1]
@@ -252,6 +257,30 @@ class MyQThreadFTP(QThread, MyFtpTest):
             data = conn.recv(block_size)
             if not data:
                 break
+            local_writer.write(data)
+            cmpsize += len(data)
+            print('download process:{}'.format(float(cmpsize) / remote_size * 100))
+            self.signal_server_process.emit(float(cmpsize) / remote_size * 100)
+
+        local_writer.close()
+        ftp.voidcmd('NOOP')
+        ftp.voidresp()
+        conn.close()
+        ftp.quit()
+        self.signal_upload_finish.emit()  # 上传完成
+
+    def upload_file(self):
+        if not os.path.exists(self.local_file):
+            print('local file is not exixts')
+            return
+        self.set_debuglevel(2)
+        res = self.connect_ftp(self.remote_host, self.remote_port, self.login_name, self.login_password)
+        if res[0] != 1:
+            print(res[1])
+            self.signal_server_unable.emit(res[1])
+            return
+        ftp = res[1]
+
 
 
 if __name__ == '__main__':
