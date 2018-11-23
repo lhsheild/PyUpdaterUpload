@@ -2,6 +2,10 @@ import ftplib
 import sys
 import os
 
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+
 CONST_HOST = "192.168.8.171"
 CONST_USERNAME = "Administrator"
 CONST_PWD = "Gut102015"
@@ -195,10 +199,67 @@ class MyFtpTest(ftplib.FTP):
         return remote_path[:position + 1], remote_path[position + 1:]
 
 
+class MyQThreadFTP(QThread, MyFtpTest):
+    signal_server_unable = pyqtSignal(str)
+    signal_server_bigger = pyqtSignal()
+
+    def __init__(self, remote_host, remote_port, login_name, login_password, remote_file, local_file, is_upload):
+        super().__init__()
+        self.remote_host = remote_host
+        self.remote_port = remote_port
+        self.login_name = login_name
+        self.login_password = login_password
+        self.remote_file = remote_file
+        self.local_file = local_file
+        self.is_upload = is_upload
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        self.upload_file( )
+
+    def download_file(self):
+        res = self.connect_ftp(self.remote_host, self.remote_port, self.login_name, self.login_password)
+
+        # 链接不上服务器则退出
+        if res[0] != 1:
+            print >> sys.stderr, res[1]
+            self.signal_server_unable.emit(res[1])
+
+        ftp = res[1]
+        ftp.set_pasv(0)
+
+        remote_size = ftp.size(self.remote_file)
+        if remote_size == 0:
+            return
+
+        local_size = 0
+        if os.path.exists(self.local_file):
+            local_size = os.stat(self.local_file).st_size
+
+        if local_size >= remote_size:
+            print('local file is bigger than remote file')
+            self.signal_server_bigger.emit()
+            return
+
+        block_size = 1024 * 1024
+        cmpsize = local_size
+        ftp.voidcmd('TYPE I')
+        conn = ftp.transfercmd('RETR ' + self.remote_file, local_size)
+        local_writer = open(self.local_file, 'ab')
+        while True:
+            data = conn.recv(block_size)
+            if not data:
+                break
+
+
 if __name__ == '__main__':
     ftp_client = MyFtpTest()
     # ftp_client.upload('192.168.0.176', 21, 'Administrator', 'Gut102015',
     #                   'cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso',
     #                   'D:/Software/cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso')
 
-    ftp_client.download('192.168.0.176', 21, 'Administrator', 'Gut102015', 'cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso', 'd:/cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso')
+    ftp_client.download('192.168.0.176', 21, 'Administrator', 'Gut102015',
+                        'cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso',
+                        'd:/cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso')
