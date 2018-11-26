@@ -125,7 +125,7 @@ class MyFtpTest(ftplib.FTP):
                 break
             lwrite.write(data)
             cmpsize += len(data)
-            print('download process:{}'.format(float(cmpsize)/fsize*100))
+            print('download process:{}'.format(float(cmpsize) / fsize * 100))
 
         lwrite.close()
         ftp.voidcmd('NOOP')
@@ -179,7 +179,7 @@ class MyFtpTest(ftplib.FTP):
                 if callback:
                     callback(buf)
                 cmpsize += len(buf)
-                print('uploading {}'.format(float(cmpsize)/lsize*100))
+                print('uploading {}'.format(float(cmpsize) / lsize * 100))
                 if cmpsize == lsize:
                     print('remote file size equal break')
                     break
@@ -202,8 +202,14 @@ class MyFtpTest(ftplib.FTP):
 class MyQThreadFTP(QThread, MyFtpTest):
     signal_server_unable = pyqtSignal(str)
     signal_server_bigger = pyqtSignal()
-    signal_server_process = pyqtSignal(float)
-    signal_upload_finish = pyqtSignal()
+    signal_download_process = pyqtSignal(int)
+    signal_download_finish = pyqtSignal()
+
+    signal_local_not_exists = pyqtSignal()
+    signal_server_equal_local = pyqtSignal()
+    signal_transfer_fault = pyqtSignal()
+    signal_upload_process = pyqtSignal(int)
+    signal_upload_finish = pyqtSignal(str)
 
     def __init__(self, remote_host, remote_port, login_name, login_password, remote_file, local_file, is_upload):
         super().__init__()
@@ -214,6 +220,7 @@ class MyQThreadFTP(QThread, MyFtpTest):
         self.remote_file = remote_file
         self.local_file = local_file
         self.is_upload = is_upload
+        self.calback = None
 
     def __del__(self):
         self.wait()
@@ -260,18 +267,20 @@ class MyQThreadFTP(QThread, MyFtpTest):
             local_writer.write(data)
             cmpsize += len(data)
             print('download process:{}'.format(float(cmpsize) / remote_size * 100))
-            self.signal_server_process.emit(float(cmpsize) / remote_size * 100)
+            self.signal_download_process.emit(int((cmpsize / remote_size) * 100))
 
         local_writer.close()
         ftp.voidcmd('NOOP')
         ftp.voidresp()
         conn.close()
         ftp.quit()
-        self.signal_upload_finish.emit()  # 上传完成
+        self.signal_download_finish.emit()  # 上传完成
 
     def upload_file(self):
+        process = 0
         if not os.path.exists(self.local_file):
             print('local file is not exixts')
+            self.signal_local_not_exists.emit()
             return
         self.set_debuglevel(2)
         res = self.connect_ftp(self.remote_host, self.remote_port, self.login_name, self.login_password)
@@ -280,15 +289,72 @@ class MyQThreadFTP(QThread, MyFtpTest):
             self.signal_server_unable.emit(res[1])
             return
         ftp = res[1]
+        remote_size = 0
+        try:
+            remote_size = ftp.size(self.remote_file)
+        except:
+            pass
+        if remote_size is None:
+            remote_size = 0
 
+        local_size = os.stat(self.local_file).st_size
+        print('rsize:{}, lsize:{}'.format(remote_size, local_size))
+        if remote_size == local_size:
+            print('remote filesize is equal with local')
+            self.signal_server_equal_local.emit()
+            return
+        if remote_size < local_size:
+            local_file = open(self.local_file, 'rb')
+            local_file.seek(remote_size)
+            ftp.voidcmd('TYPE I')
+            datasock = ''
+            esize = ''
+            try:
+                datasock, esize = ftp.ntransfercmd('STOR ' + self.remote_file, remote_size)
+            except Exception as e:
+                print(sys.stderr, '----------ftp.ntransfercmd-------- : %s' % e)
+                self.signal_transfer_fault.emit()
+                return
+            cmpsize = remote_size
+            while True:
+                buf = local_file.read(1024 * 1024)
+                if not len(buf):
+                    print('no data break')
+                    self.signal_upload_finish.emit(self.local_file)
+                    break
+                datasock.sendall(buf)
+                if self.calback:
+                    self.calback(buf)
+                cmpsize += len(buf)
+                process = (cmpsize / local_size) * 100
+                print(int(process))
+                self.signal_upload_process.emit(int(process))
+                if cmpsize == local_file:
+                    print('remote file size equal break')
+                    self.signal_upload_finish.emit(self.local_file)
+                    break
+            datasock.close()
+            print('close data handle')
+            local_file.close()
+            print('close local file handle')
+            ftp.voidcmd('NOOP')
+            print('keep alive cmd success')
+            ftp.voidresp()
+            print('No loop cmd')
+            ftp.quit()
 
 
 if __name__ == '__main__':
-    ftp_client = MyFtpTest()
-    # ftp_client.upload('192.168.0.176', 21, 'Administrator', 'Gut102015',
+    ftp_client = MyQThreadFTP('192.168.0.133', 21, 'Administrator', 'Gut102015',
+                              'cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso',
+                              'D:\\Software\\cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso',
+                              True)
+    ftp_client.upload_file()
+
+    # ftp_client.('192.168.0.176', 21, 'Administrator', 'Gut102015',
     #                   'cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso',
     #                   'D:/Software/cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso')
 
-    ftp_client.download('192.168.0.176', 21, 'Administrator', 'Gut102015',
-                        'cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso',
-                        'd:/cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso')
+    # ftp_client.download('192.168.0.176', 21, 'Administrator', 'Gut102015',
+    #                     'cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso',
+    #                     'd:/cn_visual_studio_enterprise_2015_with_update_3_x86_x64_dvd_8923298.iso')
