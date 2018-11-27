@@ -24,25 +24,30 @@ class MainWindow(QMainWindow):
         self.quit_button = self.quit_button_init()  # 退出按钮
         self.check_button = self.check_button_init()  # 检查按钮
         self.tips_label = self.tips_label_init()  # 提示标签
-        # self.progress_bar = self.progressbar_init()  # 进度条
+        self.progress_bar = self.progressbar_init()  # 进度条
 
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.check_button)
-        button_layout.addWidget(self.quit_button)
+        button_layout = QHBoxLayout(self)
+        button_layout.addWidget(self.check_button, 0, Qt.AlignCenter)
+        button_layout.addWidget(self.quit_button, 0, Qt.AlignCenter)
 
         # tips_layout = QVBoxLayout()
         # tips_layout.addWidget(self.tips_label, 0, Qt.AlignLeft)
         # tips_layout.addWidget(self.progress_bar, 0)
 
-        bottom_layout = QHBoxLayout()
-        bottom_layout.addWidget(self.tips_label, Qt.AlignCenter)
+        bottom_layout = QVBoxLayout(self)
+        bottom_layout.addWidget(self.tips_label, 0, Qt.AlignCenter)
+        bottom_layout.addWidget(self.progress_bar, 0, Qt.AlignCenter)
 
-        main_layout = QVBoxLayout()
+        main_layout = QVBoxLayout(self)
         main_layout.addLayout(button_layout)
+        main_layout.addSpacerItem(QSpacerItem(1280, 5))
         main_layout.addLayout(bottom_layout)
 
         center_widget.setLayout(main_layout)
         center_widget.show()
+
+        '''初始化检测'''
+        self.check_if_upload_failed()
 
         '''临时变量'''
         self.project_path = None
@@ -55,7 +60,7 @@ class MainWindow(QMainWindow):
         painter.begin(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
-        painter.drawPixmap(0, 0, 1280, 720, QPixmap(':/resource/d.jpg'))
+        painter.drawPixmap(0, 0, 1280, 960, QPixmap(':/resource/d.jpg'))
         painter.end()
 
     def quit_button_init(self):
@@ -68,6 +73,7 @@ class MainWindow(QMainWindow):
             "QPushButton{color:black;background-color:transparent;border:none} QPushButton:hover{"
             "background-color:#888888;border:none}")
         quit_button.clicked.connect(lambda: sys.exit(0))
+        quit_button.setEnabled(False)
         return quit_button
 
     def check_button_init(self):
@@ -78,7 +84,7 @@ class MainWindow(QMainWindow):
         check_button.setFixedSize(256, 256)
         check_button.setStyleSheet(
             "QPushButton{color:black;background-color:transparent;} QPushButton:hover{background-color:#888888}")
-        check_button.setEnabled(True)
+        check_button.setEnabled(False)
         check_button.clicked.connect(lambda: self.select_ckeck_folder())
         check_button.setObjectName('check_button')
         return check_button
@@ -96,15 +102,15 @@ class MainWindow(QMainWindow):
         tips_label.setFont(tips_font)
         tips_label.setStyleSheet('QLabel{color:white}')
         tips_label.setText('请检测更新文件')
-        tips_label.setFixedSize(800, 30)
+        tips_label.setFixedSize(800, 20)
         tips_label.setObjectName('tips_label')
         return tips_label
 
     def progressbar_init(self):
         progressbar = QProgressBar(self)
         progressbar.setAlignment(Qt.AlignCenter)
-        progressbar.setFixedSize(800, 30)
-        # progressbar.setVisible(False)
+        progressbar.setFixedSize(800, 20)
+        progressbar.setVisible(False)
         return progressbar
 
     def select_ckeck_folder(self):
@@ -114,7 +120,11 @@ class MainWindow(QMainWindow):
             self.check_info_backend(self.project_path)
 
     '''检测是否已有文件信息记录'''
+
     def check_info_backend(self, project_path):
+        self.tips_label.setText('检测项目：{}'.format(project_path))
+        self.check_button.setEnabled(False)
+        self.quit_button.setEnabled(False)
         self.check_info_helper = CheckHelper.CheckInfoHelper(project_path)
         self.check_info_helper.signal_get_info.connect(self.check_info_success)
         self.check_info_helper.signal_get_info_fail.connect(self.check_info_fail)
@@ -135,6 +145,7 @@ class MainWindow(QMainWindow):
         self.cal_info_backend(self.project_path)
 
     '''计算所有文件信息'''
+
     def cal_info_backend(self, project_path):
         self.cal_info_helper = CompareHelper.FullCheckHelper(project_path)
         self.cal_info_helper.signal_cal_folder_size.connect(self.cal_folder_size)
@@ -156,8 +167,11 @@ class MainWindow(QMainWindow):
     def get_full_info(self):
         # self.findChild(QLabel, 'tips_label').setText('已生成项目初始信息')
         self.tips_label.setText('已生成项目初始信息')
+        self.quit_button.setEnabled(True)
+        self.check_button.setEnabled(True)
 
     '''对比文件信息'''
+
     def compare_info_backend(self, project_path):
         self.compare_info_helper = CompareHelper.UpdateCheckHelper(project_path, self.size_dic, self.md5_dic)
         self.compare_info_helper.signal_compare_folder_size.connect(self.compare_folder_size)
@@ -199,37 +213,114 @@ class MainWindow(QMainWindow):
         index1 = self.project_path.find(project_name)
         project_pre_path = self.project_path[0:index1]
         update_dic = update_info[1]
-        time_tick = str(time.time())
+        # time_tick = str(time.time())
         if len(update_dic) > 0:
-            with zipfile.ZipFile((project_name + '_' + time_tick + '.zip'), 'w') as zip_file:
-                try:
-                    for i in update_dic:
-                        update_file = os.path.join(project_pre_path, i)
-                        update_file = os.path.abspath(update_file)
-                        # zip_file.write(update_file)
-                        zip_file.write(update_file, i)
-                        # self.findChild(QLabel, 'tips_label').setText('压缩文件：{}'.format(update_file))
-                        self.tips_label.setText('压缩文件：{}'.format(update_file))
-                    zip_file.write(project_name + '_update.json')
-                except Exception as e:
-                    print(e)
-
-            update_zip = project_name + '_' + time_tick + '.zip'
-            try:
-                my_ftp_helper = FTPHelper.MyFtp('172.16.1.156', 21, 'Administrator', '123456')
-                if my_ftp_helper.ftp_login() == 1000:
-                    upload_result = my_ftp_helper.upload_file(update_zip, update_zip)
-                    if upload_result == 1000:
-                        # self.findChild(QLabel, 'tips_label').setText('更新包上传成功：{}'.format(update_zip))
-                        self.tips_label.setText('更新包上传成功：{}'.format(update_zip))
-                    else:
-                        # self.findChild(QLabel, 'tips_label').setText('更新包上传失败，请联系管理员并手动上传更新包')
-                        self.tips_label.setText('更新包上传失败，请联系管理员并手动上传更新包')
-                else:
-                    # self.findChild(QLabel, 'tips_label').setText('服务器链接失败，请联系管理员并手动上传更新包')
-                    self.tips_label.setText('服务器链接失败，请联系管理员并手动上传更新包')
-            except Exception as e:
-                print(e)
+            self.zip_task(update_dic, project_name, project_pre_path)
+            # with zipfile.ZipFile((project_name + '_' + time_tick + '.zip'), 'w') as zip_file:
+            #     try:
+            #         for i in update_dic:
+            #             update_file = os.path.join(project_pre_path, i)
+            #             update_file = os.path.abspath(update_file)
+            #             zip_file.write(update_file, i)
+            #             self.tips_label.setText('压缩文件：{}'.format(update_file))
+            #         zip_file.write(project_name + '_update.json')
+            #     except Exception as e:
+            #         print(e)
+            #
+            # update_zip = project_name + '_' + time_tick + '.zip'
+            # try:
+            #     self.upload_task(update_zip, update_zip)
+            # except Exception as e:
+            #     print(e)
         else:
-            # self.findChild(QLabel, 'tips_label').setText('没有更新内容：{}'.format(project_name))
             self.tips_label.setText('没有更新内容：{}'.format(project_name))
+            self.quit_button.setEnabled(True)
+            self.check_button.setEnabled(True)
+
+    def upload_task(self, local_file, remote_file):
+        self.progress_bar.setVisible(True)
+        self.tips_label.setText('上传更新包：{}'.format(local_file))
+        self.my_upload_helper = FTPHelper.MyQThreadFTP('192.168.0.133', 21, 'Administrator', 'Gut102015', remote_file,
+                                                       local_file, True)
+        self.my_upload_helper.signal_local_not_exists.connect(self.upload_local_not_exists)  # 本地文件不存在
+        self.my_upload_helper.signal_server_unable.connect(self.upload_server_unable)  # 服务器连接失败
+        self.my_upload_helper.signal_server_equal_local.connect(self.upload_server_equal)  # 服务器已有相同文件
+        self.my_upload_helper.signal_transfer_fault.connect(self.upload_transfer_fail)  # 上传文件失败
+        self.my_upload_helper.signal_upload_process.connect(self.upload_process)  # 上传进度
+        self.my_upload_helper.signal_upload_finish.connect(self.upload_finish)  # 上传完成
+        self.my_upload_helper.start()
+
+    @pyqtSlot()
+    def upload_local_not_exists(self):
+        self.tips_label.setText('本地文件不存在!')
+
+    @pyqtSlot(str)
+    def upload_server_unable(self, info):
+        self.tips_label.setText('服务器连接失败!')
+        with open('upload_fail_log.json', 'w') as f:
+            f.write(info)
+
+    @pyqtSlot()
+    def upload_server_equal(self):
+        self.tips_label.setText('服务器已存在相同文件')
+
+    @pyqtSlot(str)
+    def upload_transfer_fail(self, info):
+        self.tips_label.setText('文件上传失败!')
+        with open('upload_fail_log.json', 'w') as f:
+            f.write(info)
+
+    @pyqtSlot(int)
+    def upload_process(self, process):
+        self.progress_bar.setValue(process)
+
+    @pyqtSlot(str)
+    def upload_finish(self, file_name):
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(False)
+        self.tips_label.setText('更新包上传成功：{}'.format(file_name))
+        if os.path.exists('upload_fail_log.json'):
+            os.remove('upload_fail_log.json')
+        self.quit_button.setEnabled(True)
+        self.check_button.setEnabled(True)
+
+    def check_if_upload_failed(self):
+        self.check_break_helper = FTPHelper.ResumeBreak()
+        self.check_break_helper.signal_no_failed_log.connect(self.no_failed_file)
+        self.check_break_helper.signal_found_failed_log.connect(self.has_failed_file)
+        self.check_break_helper.start()
+
+    @pyqtSlot()
+    def no_failed_file(self):
+        self.quit_button.setEnabled(True)
+        self.check_button.setEnabled(True)
+
+    @pyqtSlot(str)
+    def has_failed_file(self, info):
+        self.tips_label.setText('存在未上传成功更新包，尝试继续上传：{}'.format(info))
+        self.upload_task(info, info)
+
+    def zip_task(self, update_dic, project_name, project_pre_path):
+        self.progress_bar.setVisible(True)
+        self.zip_helper = FTPHelper.ZipPack(update_dic, project_name, project_pre_path)
+        self.zip_helper.signal_zip_process.connect(self.zip_process)
+        self.zip_helper.signal_zip_finish.connect(self.zip_finish)
+        self.zip_helper.start()
+
+    @pyqtSlot(tuple)
+    def zip_process(self, info):
+        zipping_file = info[0]
+        zipping_process = info[1]
+        self.tips_label.setText('压缩文件：{}'.format(zipping_file))
+        self.progress_bar.setValue(zipping_process)
+
+    @pyqtSlot(str)
+    def zip_finish(self, info):
+        update_zip = info
+        self.tips_label.setText('更新包生成完成：{}'.format(update_zip))
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(False)
+        try:
+            self.upload_task(update_zip, update_zip)
+        except Exception as e:
+            print(e)
